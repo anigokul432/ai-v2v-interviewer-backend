@@ -34,4 +34,5 @@ class GPTFollowupRequest(BaseModel):
 
 class ConversationCreate(BaseModel):
     interview_id: int
-    conversation: List[Tuple[str, str]]
+    conversation: List[Tuple[str, str, int]]  # Now includes a timestamp as an integer
+    recording: Optional[bytes] = None
