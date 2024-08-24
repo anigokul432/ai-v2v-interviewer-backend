@@ -10,6 +10,10 @@ from typing import List
 import base64
 import logging
 
+from fastapi.responses import StreamingResponse
+import io
+
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -313,4 +317,12 @@ def gpt_outro(interview_id: int, db: Session = Depends(get_db), user: models.Use
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred while generating the outro: {str(e)}")
+
+@router.get("/recording/{interview_id}")
+def get_interview_recording(interview_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id, models.Interview.user_id == user.id).first()
+    if not interview or not interview.recording:
+        raise HTTPException(status_code=404, detail="Recording not found for this interview")
+
+    return StreamingResponse(io.BytesIO(interview.recording), media_type="audio/webm")
 
