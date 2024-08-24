@@ -13,8 +13,10 @@ app.add_middleware(
     CORSMiddleware,
     # allow_origins specifies the origins that are allowed to access the API
     # Uncomment the following line if you want to allow requests from your deployed frontend (GitHub Pages)
-    allow_origins=["https://anigokul432.github.io"], 
-    # allow_origins=["http://localhost:3000"],  # Allow requests from the local frontend (typically during development)
+    allow_origins=[
+        "https://anigokul432.github.io",
+        "http://localhost:3000",
+    ], 
     allow_credentials=True,  # Allow cookies to be sent with requests
     allow_methods=["*"],  # Allow all HTTP methods (GET, POST, PUT, DELETE, etc.)
     allow_headers=["*"],  # Allow all headers in requests
