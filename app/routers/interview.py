@@ -115,7 +115,8 @@ def get_all_interviews(db: Session = Depends(get_db)):
             "description": interview.description,
             "questions": [q.text for q in interview.questions],  # Assuming a relationship to questions exists
             "taken": interview.taken,  # Indicates if the interview has been taken
-            "score": interview.score   # The score obtained in the interview
+            "score": interview.score,   # The score obtained in the interview
+            "conversation": interview.conversations
         }
         for interview in interviews
     ]
