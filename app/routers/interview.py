@@ -8,7 +8,6 @@ import openai
 from .auth import LLM_API_KEY
 from typing import List
 
-
 openai.api_key = LLM_API_KEY
 
 router = APIRouter(
@@ -35,15 +34,13 @@ def get_user_interviews(db: Session = Depends(get_db), user: models.User = Depen
             "title": interview.title,
             "description": interview.description,
             "questions": [q.text for q in interview.questions],  # Assuming you have a questions relationship
-            "taken": interview.taken ,  # Ensure this line is included
+            "taken": interview.taken,  # Ensure this line is included
             "score": interview.score
-
         }
         for interview in interviews
     ]
     
     return interviews_data
-
 
 @router.post("/create", status_code=status.HTTP_201_CREATED)
 def create_interview(interview: schemas.InterviewCreate, db: Session = Depends(get_db)):
@@ -107,7 +104,6 @@ def get_all_interviews(db: Session = Depends(get_db)):
     
     return interviews_data
 
-
 @router.get("/{interview_id}")
 def get_interview_by_id(interview_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
     interview = db.query(models.Interview).filter(models.Interview.id == interview_id, models.Interview.user_id == user.id).first()
@@ -119,12 +115,11 @@ def get_interview_by_id(interview_id: int, db: Session = Depends(get_db), user: 
         "id": interview.id,
         "title": interview.title,
         "description": interview.description,
-        "questions": [q.text for q in interview.questions] , # Assuming you have a questions relationship
+        "questions": [q.text for q in interview.questions],  # Assuming you have a questions relationship
         "taken": interview.taken,  # Ensure this line is included
         "score": interview.score
     }
     return interview_data
-
 
 @router.put("/update/{interview_id}")
 def update_interview(interview_id: int, interview: schemas.InterviewUpdate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
@@ -168,7 +163,6 @@ def delete_interview(interview_id: int, db: Session = Depends(get_db), user: mod
     db.commit()
 
     return {"message": "Interview deleted successfully"}
-
 
 @router.post("/gpt-followup")
 def gpt_followup(gpt_request: schemas.GPTFollowupRequest):
@@ -233,3 +227,67 @@ def submit_conversation(request: schemas.ConversationCreate, db: Session = Depen
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred while processing the conversation: {str(e)}")
+
+# New GPT intro endpoint
+@router.post("/gpt-intro")
+def gpt_intro(interview_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id, models.Interview.user_id == user.id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    try:
+        # Build the prompt to generate the introduction
+        prompt = (
+            f"You are an AI Interviewer. You are going to be introducting your self as the AI Interviewer. Do a generic greeting first with the user's name. Then you'll welcome the user and a 10 word description of the interview that is to follow. Speak as if you are speaking to the candidate being interviewed. Always end with 'Let us get started!'"
+            f"The interviewee is {user.username}. "
+            f"The interview title is '{interview.title}', and its description is '{interview.description}'. "
+        )
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI interviewer."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=150,
+            temperature=0.7,
+        )
+
+        introduction = response['choices'][0]['message']['content'].strip()
+
+        return {"introduction": introduction}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred while generating the introduction: {str(e)}")
+
+# New GPT outro endpoint
+@router.post("/gpt-outro")
+def gpt_outro(interview_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    interview = db.query(models.Interview).filter(models.Interview.id == interview_id, models.Interview.user_id == user.id).first()
+    if not interview:
+        raise HTTPException(status_code=404, detail="Interview not found")
+
+    try:
+        # Build the prompt to generate the outro
+        prompt = (
+            f"You are an AI interviewer. Generate a professional closing statement for an interview. "
+            f"Please thank the interviewee {user.username} for their time and comment on their answers."
+        )
+
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are an AI interviewer."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=150,
+            temperature=0.7,
+        )
+
+        outro = response['choices'][0]['message']['content'].strip()
+
+        return {"outro": outro}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred while generating the outro: {str(e)}")
+
